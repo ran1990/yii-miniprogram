@@ -1,0 +1,25 @@
+{
+	"name" : "life2016/miniprogram",
+	"description" : "MiniProgramSDK是一个PHP的小程序开发包。封装微信小程序后端相关接口，比如解密信息（用户信息、手机号）、获取小程序码等",
+	"type" : "yii2-extension",
+	"keywords" : ["小程序", "miniprogram", "微信", "wechat", "yii2-miniprogram"],
+	"license" : "MIT",
+	"authors" : [{
+			"name" : "ran.ran",
+			"email" : "503948796@qq.com"
+		}
+	],
+	"support": {
+		"issues": "https://github.com/ran1990/yii-miniprogram/issues"
+	},
+	"require" : {
+		"php": ">=7.2.0",
+		"yiisoft/yii2" : "*",
+		"linslin/yii2-curl": "*"
+	},
+	"autoload" : {
+		"psr-4" : {
+			"life2016\\miniprogram\\" : "src/"
+		}
+	}
+}
