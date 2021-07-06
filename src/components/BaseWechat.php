@@ -1,5 +1,5 @@
 <?php
-namespace life2016\miniprogram\src\components;
+namespace life2016\miniprogram\components;
 
 use DOMDocument;
 use DOMElement;

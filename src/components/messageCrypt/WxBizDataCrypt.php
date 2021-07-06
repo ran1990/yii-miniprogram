@@ -1,6 +1,6 @@
 <?php
 
-namespace life2016\miniprogram\src\components\messageCrypt;
+namespace life2016\miniprogram\components\messageCrypt;
 
 /**
  * 对微信小程序用户加密数据的解密示例代码.

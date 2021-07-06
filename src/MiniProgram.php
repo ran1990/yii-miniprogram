@@ -1,6 +1,6 @@
 <?php
 
-namespace life2016\miniprogram\src;
+namespace life2016\miniprogram;
 
 use Yii;
 use yii\base\InvalidConfigException;

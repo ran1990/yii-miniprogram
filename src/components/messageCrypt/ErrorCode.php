@@ -1,5 +1,5 @@
 <?php
-namespace life2016\miniprogram\src\components\messageCrypt;
+namespace life2016\miniprogram\components\messageCrypt;
 
 /**
  * error code 说明.
