@@ -1,9 +1,8 @@
 <?php
 namespace life2016\miniprogram\components;
 
-use DOMDocument;
-use DOMElement;
-use DOMText;
+
+use life2016\miniprogram\components\messageCrypt\ErrorCode;
 use Yii;
 use yii\base\Event;
 use yii\base\Component;
@@ -21,27 +20,16 @@ abstract class BaseWechat extends Component
      * Access Token更新后事件
      */
     const EVENT_AFTER_ACCESS_TOKEN_UPDATE = 'afterAccessTokenUpdate';
-    /**
-     * JS API更新后事件
-     */
-    const EVENT_AFTER_JS_API_TICKET_UPDATE = 'afterJsApiTicketUpdate';
+
     /**
      * 数据缓存前缀
      * @var string
      */
-    public $cachePrefix = 'cache_wechat_sdk';
+    public $cachePrefix = 'cache_wechat_sdk_mp';
     /**
      * @var array
      */
     private $_accessToken;
-    /**
-     * @var array
-     */
-    private $_jsApiTicket;
-    /**
-     * @var MessageCrypt
-     */
-    private $_messageCrypt;
 
     /**
      * 返回错误码
@@ -98,181 +86,6 @@ abstract class BaseWechat extends Component
             throw new InvalidParamException('Wechat access_token expire time must be set.');
         }
         $this->_accessToken = $accessToken;
-    }
-
-    /**
-     * 请求微信服务器获取JsApiTicket
-     * 必须返回以下格式内容
-     * [
-     *     'ticket => 'xxx',
-     *     'expirs_in' => 7200
-     * ]
-     * @return array|bool
-     */
-    abstract protected function requestJsApiTicket();
-
-    /**
-     * 生成js 必要的config
-     */
-    abstract public function jsApiConfig(array $config = []);
-
-    /**
-     * 获取js api ticket
-     * 超时后会自动重新获取JsApiTicket并触发self::EVENT_AFTER_JS_API_TICKET_UPDATE事件
-     * @param bool $force 是否强制获取
-     * @return mixed
-     * @throws HttpException
-     */
-    public function getJsApiTicket($force = false)
-    {
-        $time = time(); // 为了更精确控制.取当前时间计算
-        if ($this->_jsApiTicket === null || $this->_jsApiTicket['expire'] < $time || $force) {
-            $result = $this->_jsApiTicket === null && !$force ? $this->getCache('js_api_ticket', false) : false;
-            if ($result === false) {
-                if (!($result = $this->requestJsApiTicket())) {
-                    throw new HttpException(500, 'Fail to get jsapi_ticket from wechat server.');
-                }
-                $result['expire'] = $time + $result['expires_in'];
-                $this->trigger(self::EVENT_AFTER_JS_API_TICKET_UPDATE, new Event(['data' => $result]));
-                $this->setCache('js_api_ticket', $result, $result['expires_in']);
-            }
-            $this->setJsApiTicket($result);
-        }
-        return $this->_jsApiTicket['ticket'];
-    }
-
-    /**
-     * 设置JsApiTicket
-     * @param array $jsApiTicket
-     */
-    public function setJsApiTicket(array $jsApiTicket)
-    {
-        $this->_jsApiTicket = $jsApiTicket;
-    }
-
-    /**
-     * 创建消息加密类
-     * @return mixed
-     */
-    abstract protected function createMessageCrypt();
-
-    /**
-     * 设置消息加密处理类
-     * @return MessageCrypt
-     */
-    public function getMessageCrypt()
-    {
-        if ($this->_messageCrypt === null) {
-            $this->setMessageCrypt($this->createMessageCrypt());
-        }
-        return $this->_messageCrypt;
-    }
-
-    /**
-     * 设置消息加密处理类
-     * @param MessageCrypt $messageCrypt
-     */
-    public function setMessageCrypt(MessageCrypt $messageCrypt)
-    {
-        $this->_messageCrypt = $messageCrypt;
-    }
-
-    /**
-     * 加密XML数据
-     * @param string $xml 加密的XML
-     * @param string $timestamp 加密时间戳
-     * @param string $nonce 加密随机串
-     * @return string|bool
-     */
-    public function encryptXml($xml, $timestamp , $nonce)
-    {
-        $errorCode = $this->getMessageCrypt()->encryptMsg($xml, $timestamp, $nonce, $xml);
-        if ($errorCode) {
-            $this->lastError = [
-                'errcode' => $errorCode,
-                'errmsg' => 'XML数据加密失败!'
-            ];
-            return false;
-        }
-        return $xml;
-    }
-
-    /**
-     * 解密XML数据
-     * @param string $xml 解密的XML
-     * @param string $messageSignature 加密签名
-     * @param string $timestamp 加密时间戳
-     * @param string $nonce 加密随机串
-     * @return string|bool
-     */
-    public function decryptXml($xml, $messageSignature, $timestamp , $nonce)
-    {
-        $errorCode = $this->getMessageCrypt()->decryptMsg($messageSignature, $timestamp, $nonce, $xml, $xml);
-        if ($errorCode) {
-            $this->lastError = [
-                'errcode' => $errorCode,
-                'errmsg' => 'XML数据解密失败!'
-            ];
-            return false;
-        }
-        return $xml;
-    }
-
-    /**
-     * 创建微信格式的XML
-     * @param array $data
-     * @param null $charset
-     * @return string
-     */
-    public function xml(array $data, $charset = null)
-    {
-        $dom = new DOMDocument('1.0', $charset === null ? Yii::$app->charset : $charset);
-        $root = new DOMElement('xml');
-        $dom->appendChild($root);
-        $this->buildXml($root, $data);
-        $xml = $dom->saveXML();
-        return trim(substr($xml, strpos($xml, '?>') + 2));
-    }
-
-    /**
-     * @var string the name of the elements that represent the array elements with numeric keys.
-     */
-    public $itemTag = 'item';
-
-    /**
-     * @see yii\web\XmlResponseFormatter::buildXml()
-     */
-    protected function buildXml($element, $data)
-    {
-        if (is_object($data)) {
-            $child = new DOMElement(StringHelper::basename(get_class($data)));
-            $element->appendChild($child);
-            if ($data instanceof Arrayable) {
-                $this->buildXml($child, $data->toArray());
-            } else {
-                $array = [];
-                foreach ($data as $name => $value) {
-                    $array[$name] = $value;
-                }
-                $this->buildXml($child, $array);
-            }
-        } elseif (is_array($data)) {
-            foreach ($data as $name => $value) {
-                if (is_int($name) && is_object($value)) {
-                    $this->buildXml($element, $value);
-                } elseif (is_array($value) || is_object($value)) {
-                    $child = new DOMElement(is_int($name) ? $this->itemTag : $name);
-                    $element->appendChild($child);
-                    $this->buildXml($child, $value);
-                } else {
-                    $child = new DOMElement(is_int($name) ? $this->itemTag : $name);
-                    $element->appendChild($child);
-                    $child->appendChild(new DOMText((string) $value));
-                }
-            }
-        } else {
-            $element->appendChild(new DOMText((string) $data));
-        }
     }
 
     /**
@@ -432,5 +245,17 @@ abstract class BaseWechat extends Component
     {
         // php 5.5将抛弃@写法,引用CURLFile类来实现 @see http://segmentfault.com/a/1190000000725185
         return class_exists('\CURLFile') ? new \CURLFile($filePath) : '@' . $filePath;
+    }
+
+    /**
+     * 捕捉错误
+     * @return string|null
+     */
+    public function getErrorMsg()
+    {
+        if (!$error = $this->lastError) {
+            return NULL;
+        }
+        return ErrorCode::getErrorMsg($error['errcode'] ?? NULL);
     }
 }
