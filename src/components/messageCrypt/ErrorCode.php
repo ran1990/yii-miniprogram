@@ -19,6 +19,38 @@ class ErrorCode
 	public static $IllegalIv = -41002;
 	public static $IllegalBuffer = -41003;
 	public static $DecodeBase64Error = -41004;
+
+    /**
+     * 根据错误码获取错误信息
+     * @param $errorCode
+     * @return string
+     */
+    public static function getErrorMsg($errorCode)
+    {
+        switch ($errorCode) {
+            case '40029':
+                $errorMsg = 'code 非法';
+                break;
+            case '-41001':
+                $errorMsg = 'sessionKey 非法';
+                break;
+            case '-41002':
+                $errorMsg = 'iv 非法';
+                break;
+            case '-41003':
+                $errorMsg = '解密失败';
+                break;
+            case '41008':
+                $errorMsg = '缺少code参数';
+                break;
+            case '40163':
+                $errorMsg = 'code已使用';
+                break;
+            default:
+                $errorMsg = '操作失败，错误码：' . $errorCode;
+        }
+        return $errorMsg;
+    }
 }
 
 ?>
