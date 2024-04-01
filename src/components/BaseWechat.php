@@ -64,7 +64,7 @@ abstract class BaseWechat extends Component
                 if (!($result = $this->requestAccessToken())) {
                     throw new HttpException(500, 'Fail to get access_token from wechat server.');
                 }
-                $result['expire'] = $time + $result['expires_in'];
+                $result['expire'] = $time + $result['expires_in']-300;
                 $this->trigger(self::EVENT_AFTER_ACCESS_TOKEN_UPDATE, new Event(['data' => $result]));
                 $this->setCache('access_token', $result, $result['expires_in']);
             }
@@ -211,15 +211,15 @@ abstract class BaseWechat extends Component
     protected function http($url, $options = [])
     {
         $options = [
-            CURLOPT_URL => $url,
-            CURLOPT_TIMEOUT => 30,
-            CURLOPT_CONNECTTIMEOUT => 30,
-            CURLOPT_RETURNTRANSFER => true,
-        ] + (stripos($url, "https://") !== false ? [
-            CURLOPT_SSL_VERIFYPEER => false,
-            CURLOPT_SSL_VERIFYHOST => false,
-            CURLOPT_SSLVERSION => CURL_SSLVERSION_TLSv1 // 微信官方屏蔽了ssl2和ssl3, 启用更高级的ssl
-        ] : []) + $options;
+                CURLOPT_URL => $url,
+                CURLOPT_TIMEOUT => 30,
+                CURLOPT_CONNECTTIMEOUT => 30,
+                CURLOPT_RETURNTRANSFER => true,
+            ] + (stripos($url, "https://") !== false ? [
+                CURLOPT_SSL_VERIFYPEER => false,
+                CURLOPT_SSL_VERIFYHOST => false,
+                CURLOPT_SSLVERSION => CURL_SSLVERSION_TLSv1 // 微信官方屏蔽了ssl2和ssl3, 启用更高级的ssl
+            ] : []) + $options;
 
         $curl = curl_init();
         curl_setopt_array($curl, $options);

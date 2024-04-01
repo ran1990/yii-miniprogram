@@ -20,7 +20,7 @@ class MiniProgram extends BaseWechat
     /**
      * @see https://developers.weixin.qq.com/miniprogram/dev/api-backend/open-api/access-token/auth.getAccessToken.html
      */
-    const ACCESS_TOKEN_PATH = '/cgi-bin/token';
+    const ACCESS_TOKEN_PATH = '/cgi-bin/stable_token';
     /**
      * @see https://developers.weixin.qq.com/miniprogram/dev/api-backend/open-api/login/auth.code2Session.html
      */
@@ -130,7 +130,7 @@ class MiniProgram extends BaseWechat
      */
     protected function requestAccessToken($grantType = 'client_credential')
     {
-        $result = $this->httpGet(self::ACCESS_TOKEN_PATH, [
+        $result = $this->httpRaw(self::ACCESS_TOKEN_PATH, [
             'appid'      => $this->appId,
             'secret'     => $this->appSecret,
             'grant_type' => $grantType,
@@ -157,12 +157,12 @@ class MiniProgram extends BaseWechat
         return !array_key_exists('errcode', $result) ? $result : false;
     }
 
-    public function getJscode2Mobile($code, $openid)
+    public function getJscode2Mobile($code, $openid, $force = false)
     {
         $result = $this->httpRaw(self::WXACODE_GETUSERPHONENUMBER, [
             'openid' => $openid,
             'code'   => $code,
-        ], ['access_token' => $this->getAccessToken()]);
+        ], ['access_token' => $this->getAccessToken($force)]);
 
         return !array_key_exists('errcode', $result) ? $result : false;
     }
